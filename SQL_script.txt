@@ -1,0 +1,116 @@
+ALTER TABLE movies
+DROP COLUMN Column1
+
+SELECT * FROM movies
+LIMIT 10
+
+-- Топ-10 фильмов
+CREATE TABLE rating_top AS 
+SELECT Name, Genre, Rating FROM movies
+ORDER BY Rating DESC
+LIMIT 10
+
+
+-- Фильмы, заработавшие больше всего денег
+SELECT Name, Genre, Rating,  Gross 
+FROM movies
+ORDER BY Gross DESC 
+LIMIT 10
+
+-- Фильмы, заработавшие меньше всего денег
+SELECT Name, Genre, Rating,  Gross 
+FROM movies
+ORDER BY Gross
+LIMIT 10
+
+-- Фильм с самым худшим рейтингом в жанре драма
+SELECT Name, Genre, Rating, Gross FROM movies
+WHERE Genre LIKE '%Drama%'
+ORDER BY Rating
+LIMIT 10
+
+--Количество фильмов по годам
+CREATE TABLE movies_count AS
+SELECT Year,
+COUNT(*) as movies_count
+FROM movies
+GROUP BY YEAR 
+ORDER BY Year
+
+--Рейтинг фильмов Кристофера Нолана
+CREATE TABLE Nolan_rating AS
+SELECT Name, Genre, Year, Votes, Rating
+FROM movies
+WHERE Director LIKE '%Nolan%'
+ORDER BY Votes DESC
+
+
+--Средний gross фильмов из датасета по годам
+CREATE TABLE avg_gross_by_year AS 
+SELECT 
+	Year, 
+	ROUND(AVG(Gross), 3) as avg_gross
+FROM movies 
+GROUP BY Year
+ORDER BY avg_gross DESC 
+
+--Фильм, какого режиссера самый популярный, согласно голосованию?
+SELECT Name, Director, Year, Run_time, Gross, Votes
+FROM movies
+GROUP BY Director
+ORDER BY Gross DESC
+LIMIT 1
+
+
+--Фильмы какой длительности получают наибольший средний доход?
+SELECT
+	CASE 
+		WHEN Run_time < 60 THEN 'менее часа'
+		WHEN Run_time >= 60 AND Run_time < 90 THEN '1-1,5 часов'
+		WHEN Run_time >= 90 AND Run_time < 120 THEN '1,5-2 часов'
+		WHEN Run_time >= 120 AND Run_time < 180 THEN '2-2,5 часов'
+	ELSE 'более 2,5 часов'
+	END as runtime,
+	ROUND(AVG(Gross),0) as avg_gross
+FROM movies 
+GROUP BY runtime
+ORDER BY avg_gross DESC 
+
+--Соотносится ли рейтинг фильма и популярность среди зрителей?
+--В результате видим, что рейтинг может быть высоким, но зрительские голоса низкие и наоборот
+SELECT Name, Rating, Votes
+FROM movies
+GROUP BY Rating 
+ORDER BY Rating DESC
+
+--Средний рейтинг топ-10 самых популярных фильмов среди зрителей
+SELECT AVG(Rating) AS average_rating
+FROM (
+SELECT Rating FROM movies
+ORDER BY Votes DESC
+LIMIT 10
+)
+
+
+--Количество голосов зрителей среди лучших фильмов в жанре триллер и драма
+
+SELECT ROUND(AVG(Rating), 2) as rating, ROUND(AVG(Votes), 3) as avg_votes
+FROM movies
+WHERE Genre LIKE '%Thriller%'
+ORDER BY Rating DESC
+LIMIT 10
+
+SELECT ROUND(AVG(Rating), 2) as rating, ROUND(AVG(Votes), 3) as avg_votes
+FROM movies
+WHERE Genre LIKE '%Drama%'
+ORDER BY Rating DESC
+LIMIT 10
+
+
+--Самые популярный фильмы согласно Votes по каждому году
+SELECT Year, Name, Director, Rating, Votes 
+FROM (
+    SELECT Year, Name, Director, Rating, Votes,
+           ROW_NUMBER() OVER (PARTITION BY Year ORDER BY Votes DESC) AS rn
+    FROM movies) AS sub
+WHERE rn = 1
